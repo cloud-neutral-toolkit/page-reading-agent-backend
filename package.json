@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "start": "node main.js",
-    "dev": "node main.js"
+    "dev": "npx playwright install chromium && node main.js"
   },
   "dependencies": {
     "playwright": "^1.57.0"
