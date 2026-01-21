@@ -77,7 +77,16 @@ server.listen(DEFAULT_CONFIG.port, () => {
 async function runAgent(config) {
     console.log(`🚀 Agent Starting Task: ${JSON.stringify(config)}`);
 
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // Critical for containers with low shared memory
+            '--disable-gpu',
+            '--no-zygote'
+        ]
+    });
 
     try {
         // Get profile config based on region and device
