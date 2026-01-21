@@ -4,7 +4,7 @@ import { getGeoProfile } from './core/profiles.js';
 import http from 'node:http';
 
 const CONFIG = {
-    url: process.env.TARGET_URL || 'https://www.onwalk.net',
+    url: process.env.TARGET_URL || 'https://mp.weixin.qq.com/s/Wv6uu2txazoDw7XJMQTkGQ',
     mode: process.env.MODE || 'slow',
     device: process.env.DEVICE || 'desktop',
     region: process.env.REGION_HINT || 'JP',

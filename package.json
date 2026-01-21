@@ -1,7 +1,11 @@
 {
   "name": "page-reading-agent",
   "type": "module",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "node main.js"
+  },
   "dependencies": {
-    "playwright": "1.41.0"
+    "playwright": "^1.57.0"
   }
 }
