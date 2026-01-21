@@ -1,0 +1,7 @@
+{
+  "name": "page-reading-agent",
+  "type": "module",
+  "dependencies": {
+    "playwright": "1.41.0"
+  }
+}
