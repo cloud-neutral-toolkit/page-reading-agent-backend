@@ -1,6 +1,7 @@
 import { chromium } from 'playwright';
 import { behaviors } from './core/behaviors.js';
 import { getGeoProfile } from './core/profiles.js';
+import { auditSEO, generateSEOReport } from './core/seo-audit.js';
 import http from 'node:http';
 
 const DEFAULT_CONFIG = {
@@ -59,6 +60,16 @@ const server = http.createServer(async (req, res) => {
                 ...requestConfig
             };
 
+            // Route: SEO Audit
+            if (url.pathname === '/seo-audit') {
+                console.log(`🔍 Starting SEO Audit for: ${currentTaskConfig.url}`);
+                const result = await runSEOAudit(currentTaskConfig);
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(result));
+                return;
+            }
+
+            // Route: Default Agent
             const result = await runAgent(currentTaskConfig);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(result));
@@ -127,3 +138,71 @@ async function runAgent(config) {
         await browser.close();
     }
 }
+
+async function runSEOAudit(config) {
+    console.log(`🔍 SEO Audit Starting: ${JSON.stringify(config)}`);
+
+    const browser = await chromium.launch({
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote'
+        ]
+    });
+
+    try {
+        // Get profile config based on region and device
+        const profile = getGeoProfile(config.region, config.device);
+
+        const context = await browser.newContext({
+            ...profile,
+            viewport: profile.viewport || { width: 1280, height: 800 }
+        });
+
+        const page = await context.newPage();
+        const startTime = Date.now();
+
+        // Navigate to the page
+        await page.goto(config.url, {
+            waitUntil: 'networkidle',
+            timeout: 30000
+        });
+
+        // Wait a bit for any dynamic content to load
+        await page.waitForTimeout(2000);
+
+        // Run SEO audit
+        const audit = await auditSEO(page, config.url);
+        const report = generateSEOReport(audit);
+
+        // Add metadata
+        report.config = {
+            region: config.region,
+            device: config.device,
+            timestamp: new Date().toISOString()
+        };
+
+        const duration = (Date.now() - startTime) / 1000;
+        report.summary.duration = duration;
+
+        console.log(`✅ SEO Audit Complete: Score ${report.summary.overallScore}/100 in ${duration}s`);
+        console.log(`   Critical: ${report.issues.critical}, Warnings: ${report.issues.warnings}, Suggestions: ${report.issues.suggestions}`);
+
+        return report;
+
+    } catch (error) {
+        console.error(`❌ SEO Audit Error: ${error.message}`);
+        return {
+            status: 'error',
+            error: error.message,
+            url: config.url,
+            timestamp: new Date().toISOString()
+        };
+    } finally {
+        await browser.close();
+    }
+}
+
