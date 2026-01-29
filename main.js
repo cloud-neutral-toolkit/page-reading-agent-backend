@@ -3,6 +3,7 @@ import { behaviors } from './core/behaviors.js';
 import { getGeoProfile } from './core/profiles.js';
 import { auditSEO, generateSEOReport } from './core/seo-audit.js';
 import http from 'node:http';
+import { createInternalAuthMiddleware } from './middleware/auth.js';
 
 const DEFAULT_CONFIG = {
     url: process.env.TARGET_URL || 'https://www.onwalk.net',
@@ -12,11 +13,13 @@ const DEFAULT_CONFIG = {
     port: process.env.PORT || 8080
 };
 
+const authMiddleware = createInternalAuthMiddleware();
+
 const server = http.createServer(async (req, res) => {
     // Enable CORS for Dashboard interaction
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Service-Token');
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -29,6 +32,13 @@ const server = http.createServer(async (req, res) => {
         res.end();
         return;
     }
+
+    // Validate authentication token
+    let authPassed = false;
+    authMiddleware(req, res, () => {
+        authPassed = true;
+    });
+    if (!authPassed) return;
 
     // Parse Request Body
     let body = '';
